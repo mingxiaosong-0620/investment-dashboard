@@ -74,17 +74,34 @@ export default function IndicatorCard({ indicator, onExpand, insight }: Props): 
         {/* Insight toggle */}
         {insight && (
           <button
-            className="mt-1.5 text-xs text-indigo-400 hover:text-indigo-600 transition"
+            className="mt-1.5 text-xs text-indigo-400 hover:text-indigo-600 transition font-medium"
             onClick={e => { e.stopPropagation(); setShowInsight(s => !s); }}
           >
             {showInsight ? '▲ hide' : '▼ analysis'}
           </button>
         )}
-        {insight && showInsight && (
-          <p className="mt-1 text-xs text-gray-500 leading-relaxed italic border-t border-gray-50 pt-1.5">
-            {insight}
-          </p>
-        )}
+        {insight && showInsight && (() => {
+          // Split at "Strategy:" into scenario blob + strategy blob
+          const stratIdx = insight.indexOf('Strategy:');
+          const scenario  = stratIdx > -1 ? insight.slice(0, stratIdx).trim() : insight;
+          const strategy  = stratIdx > -1 ? insight.slice(stratIdx + 'Strategy:'.length).trim() : null;
+          return (
+            <div className="mt-2 space-y-1.5 border-t border-gray-100 pt-2">
+              {/* Scenario blob */}
+              <div className="rounded-lg bg-slate-50 px-2.5 py-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Scenario</p>
+                <p className="text-xs text-slate-700 leading-relaxed">{scenario}</p>
+              </div>
+              {/* Strategy blob */}
+              {strategy && (
+                <div className="rounded-lg bg-indigo-50 px-2.5 py-2">
+                  <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-0.5">Strategy</p>
+                  <p className="text-xs text-indigo-900 leading-relaxed">{strategy}</p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {showInfo && (
