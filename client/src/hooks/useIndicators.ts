@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { IndicatorSummary } from '../types/indicators.js';
+import type { InsightsResponse } from '../types/indicators.js';
 
 export function useIndicators() {
   const [data, setData] = useState<IndicatorSummary[]>([]);
@@ -29,6 +30,21 @@ export function useIndicatorDetail(seriesId: string, months = 60) {
       .then((d: IndicatorSummary) => setData(d))
       .finally(() => setLoading(false));
   }, [seriesId, months]);
+
+  return { data, loading };
+}
+
+export function useInsights() {
+  const [data, setData] = useState<InsightsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/insights')
+      .then(r => r.json())
+      .then((d: InsightsResponse) => setData(d))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, []);
 
   return { data, loading };
 }

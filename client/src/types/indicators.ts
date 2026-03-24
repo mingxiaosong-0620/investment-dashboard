@@ -44,3 +44,13 @@ export interface RegimeResponse {
   alerts: RegimeAlert[];
   computedAt: string;
 }
+
+export interface IndicatorInsight {
+  content: string;
+  generatedAt: string;
+}
+
+export interface InsightsResponse {
+  overall: { content: string; generated_at: string } | null;
+  indicators: Record<string, IndicatorInsight>;
+}
