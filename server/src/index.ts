@@ -2,6 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { runMigrations } from './db/migrate.js';
+import { backfillAll, startDailyFetchJob } from './jobs/dailyFetch.js';
+import { computeRegime } from './services/regimeAnalysis.js';
+import indicatorRoutes from './routes/indicators.js';
+import pool from './db/client.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -14,20 +19,39 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// /api/regime MUST be registered BEFORE /api/indicators router
+app.get('/api/regime', async (_req, res) => {
+  const result = await computeRegime(pool);
+  res.json(result);
+});
+
+app.use('/api/indicators', indicatorRoutes);
+
 const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
 app.use(express.static(clientDist));
 app.get('/{*splat}', (_req, res) => {
   res.sendFile(path.join(clientDist, 'index.html'));
 });
 
-// Export app BEFORE calling listen so tests (supertest) can import without binding a port
+// Export app BEFORE calling listen — allows tests to import without port binding
 export default app;
 
-// Only start listening when not in test environment
+// Only bind port outside test environment
 if (process.env.NODE_ENV !== 'test') {
-  import('./db/migrate.js').then(({ runMigrations }) => runMigrations()).then(() => {
+  async function main() {
+    await runMigrations();
+
+    const { rows } = await pool.query('SELECT COUNT(*) as count FROM indicator_snapshots');
+    if (parseInt(rows[0].count) === 0) {
+      console.log('[startup] Empty DB — running 5-year backfill...');
+      await backfillAll();
+    }
+
+    startDailyFetchJob();
+
     app.listen(PORT, () => {
       console.log(`Investment Dashboard API running on http://localhost:${PORT}`);
     });
-  }).catch(console.error);
+  }
+  main().catch(console.error);
 }
