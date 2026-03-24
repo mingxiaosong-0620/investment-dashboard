@@ -1,12 +1,20 @@
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import path from 'path';
 import pool from './client.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS indicator_snapshots (
+  id         SERIAL PRIMARY KEY,
+  series_id  VARCHAR(50)    NOT NULL,
+  value      DECIMAL(14,6),
+  date       DATE           NOT NULL,
+  fetched_at TIMESTAMPTZ    DEFAULT NOW(),
+  UNIQUE (series_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_series_date
+  ON indicator_snapshots(series_id, date DESC);
+`;
 
 export async function runMigrations(): Promise<void> {
-  const sql = readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-  await pool.query(sql);
+  await pool.query(SCHEMA_SQL);
   console.log('Migrations complete');
 }
