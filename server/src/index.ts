@@ -3,7 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { runMigrations } from './db/migrate.js';
-import { backfillAll, fetchAllIndicators, startDailyFetchJob } from './jobs/dailyFetch.js';
+import { backfillMissing, fetchAllIndicators, startDailyFetchJob } from './jobs/dailyFetch.js';
 import { computeRegime } from './services/regimeAnalysis.js';
 import indicatorRoutes from './routes/indicators.js';
 import insightRoutes from './routes/insights.js';
@@ -54,12 +54,8 @@ if (process.env.NODE_ENV !== 'test') {
     console.log('[startup] Fetching latest indicator values...');
     fetchAllIndicators().catch(err => console.error('[startup] fetch error:', err));
 
-    // Backfill 5 years if DB is empty (first deploy)
-    const { rows } = await pool.query('SELECT COUNT(*) as count FROM indicator_snapshots');
-    if (parseInt(rows[0].count) === 0) {
-      console.log('[startup] Empty DB — running 5-year backfill in background...');
-      backfillAll().catch(console.error);
-    }
+    // Backfill any indicators with sparse history (handles first deploy + new indicators)
+    backfillMissing().catch(console.error);
   }
   main().catch(console.error);
 }

@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { INDICATORS } from '../config/indicators.js';
 import { fetchSeries, fetchLatest } from '../services/fred.js';
-import { upsertSnapshot } from '../db/queries.js';
+import { upsertSnapshot, getRecentSnapshots } from '../db/queries.js';
 
 /** Fetch the latest value for every FRED indicator and upsert to DB. */
 export async function fetchAllIndicators(): Promise<void> {
@@ -39,6 +39,42 @@ export async function backfillAll(): Promise<void> {
   console.log('[backfill] Fetching 5-year history from', startStr);
 
   for (const indicator of INDICATORS) {
+    try {
+      const obs = await fetchSeries(indicator.seriesId, startStr, indicator.fredUnits);
+      for (const o of obs) {
+        await upsertSnapshot(indicator.seriesId, o.date, o.value);
+      }
+      console.log(`[backfill] ${indicator.seriesId}: ${obs.length} observations`);
+    } catch (err) {
+      console.error(`[backfill] Failed ${indicator.seriesId}:`, err);
+    }
+  }
+  console.log('[backfill] Complete');
+}
+
+/**
+ * Backfill any indicators that have fewer than 5 stored data points.
+ * Handles both first deploy AND newly added indicators automatically.
+ */
+export async function backfillMissing(): Promise<void> {
+  const startDate = new Date();
+  startDate.setFullYear(startDate.getFullYear() - 5);
+  const startStr = startDate.toISOString().slice(0, 10);
+
+  const sparse = [];
+  for (const indicator of INDICATORS) {
+    const rows = await getRecentSnapshots(indicator.seriesId, 5);
+    if (rows.length < 5) sparse.push(indicator);
+  }
+
+  if (sparse.length === 0) {
+    console.log('[backfill] All indicators have sufficient history');
+    return;
+  }
+
+  console.log('[backfill] Backfilling', sparse.map(i => i.seriesId).join(', '));
+
+  for (const indicator of sparse) {
     try {
       const obs = await fetchSeries(indicator.seriesId, startStr, indicator.fredUnits);
       for (const o of obs) {
