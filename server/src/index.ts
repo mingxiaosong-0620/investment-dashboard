@@ -41,17 +41,19 @@ if (process.env.NODE_ENV !== 'test') {
   async function main() {
     await runMigrations();
 
-    const { rows } = await pool.query('SELECT COUNT(*) as count FROM indicator_snapshots');
-    if (parseInt(rows[0].count) === 0) {
-      console.log('[startup] Empty DB — running 5-year backfill...');
-      await backfillAll();
-    }
-
-    startDailyFetchJob();
-
+    // Listen FIRST so Railway health check passes immediately
     app.listen(PORT, () => {
       console.log(`Investment Dashboard API running on http://localhost:${PORT}`);
     });
+
+    startDailyFetchJob();
+
+    // Backfill runs in background after server is already accepting requests
+    const { rows } = await pool.query('SELECT COUNT(*) as count FROM indicator_snapshots');
+    if (parseInt(rows[0].count) === 0) {
+      console.log('[startup] Empty DB — running 5-year backfill in background...');
+      backfillAll().catch(console.error);
+    }
   }
   main().catch(console.error);
 }
