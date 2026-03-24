@@ -4,7 +4,7 @@ import { useRegime } from '../hooks/useRegime.js';
 import { useInsights } from '../hooks/useIndicators.js';
 import MacroRegimeCard from '../components/analysis/MacroRegimeCard.js';
 import StrategyPanel from '../components/analysis/StrategyPanel.js';
-import IndicatorGroup from '../components/indicators/IndicatorGroup.js';
+import IndicatorCard from '../components/indicators/IndicatorCard.js';
 import IndicatorChart from '../components/indicators/IndicatorChart.js';
 import type { IndicatorCategory } from '../types/indicators.js';
 
@@ -52,27 +52,43 @@ export default function Dashboard(): React.ReactElement {
         {/* Strategy analysis */}
         <StrategyPanel insights={insights} loading={insightsLoading} />
 
-        {/* Indicator groups */}
-        {indLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2.5">
-            {Array.from({ length: 14 }).map((_, i) => (
-              <div key={i} className="h-32 bg-white rounded-xl border animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          grouped.map(({ category, indicators: groupIndicators }) =>
-            groupIndicators.length > 0 ? (
-              <IndicatorGroup
-                key={category}
-                category={category}
-                indicators={groupIndicators}
-                onExpand={setExpandedSeries}
-                insights={insights?.indicators}
-                defaultOpen={true}
-              />
-            ) : null
-          )
-        )}
+        {/* 6-column category layout */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {indLoading
+            ? Array.from({ length: 14 }).map((_, i) => (
+                <div key={i} className="h-32 bg-white rounded-xl border animate-pulse" />
+              ))
+            : grouped.map(({ category, indicators: groupIndicators }) => {
+                const dangerCount = groupIndicators.filter(i => i.status === 'danger').length;
+                const warningCount = groupIndicators.filter(i => i.status === 'warning').length;
+                return (
+                  <div key={category} className="flex flex-col gap-2">
+                    {/* Column header */}
+                    <div className="flex items-center gap-1.5 pb-1 border-b border-gray-200">
+                      <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide leading-tight flex-1">
+                        {category}
+                      </h2>
+                      {dangerCount > 0 && (
+                        <span className="text-xs bg-red-100 text-red-600 px-1 py-0.5 rounded-full font-medium">{dangerCount}</span>
+                      )}
+                      {warningCount > 0 && (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-1 py-0.5 rounded-full font-medium">{warningCount}</span>
+                      )}
+                    </div>
+                    {/* Cards stacked vertically */}
+                    {groupIndicators.map(ind => (
+                      <IndicatorCard
+                        key={ind.seriesId}
+                        indicator={ind}
+                        onExpand={setExpandedSeries}
+                        insight={insights?.indicators?.[ind.seriesId]?.content}
+                      />
+                    ))}
+                  </div>
+                );
+              })
+          }
+        </div>
       </main>
 
       {expandedSeries && (
