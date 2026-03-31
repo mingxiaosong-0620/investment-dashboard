@@ -119,3 +119,46 @@ curl -X POST https://tree-mansion.up.railway.app/api/insights \
 For each indicator analysis, write 2-3 sentences covering: the current value and its status, the recent trend (improving/stable/deteriorating), and the key implication for investment strategy.
 
 For the overall analysis, write the complete formatted report from Step 6 as a single string (replace newlines with \n).
+
+## Step 8: Generate portfolio recommendations (if holdings exist)
+
+After posting the macro analysis, fetch current portfolio holdings and generate per-asset recommendations:
+
+```bash
+# Fetch holdings
+curl https://tree-mansion.up.railway.app/api/portfolio/holdings
+```
+
+If holdings exist, fetch latest prices:
+
+```bash
+curl https://tree-mansion.up.railway.app/api/portfolio/prices
+```
+
+Then generate portfolio analysis grounded in the macro regime from Step 5. For each asset:
+- State the current price, 1D and 1M performance
+- Give a clear action: BUY / ACCUMULATE / HOLD / REDUCE / SELL
+- Explain why in 2-3 sentences, referencing the macro regime and triggered alerts
+- Note if rebalancing is warranted given current allocation vs target
+
+For the overall portfolio summary, write 3-4 sentences covering:
+- Whether the portfolio is well-positioned for the current macro regime
+- The biggest risk in the current allocation
+- Concrete rebalancing suggestion (e.g. reduce X, add Y)
+
+Post portfolio recommendations:
+
+```bash
+curl -X POST https://tree-mansion.up.railway.app/api/portfolio/insights \
+  -H "Content-Type: application/json" \
+  -H "x-admin-key: $ADMIN_KEY" \
+  -d '{
+    "overall": "<3-4 sentence portfolio strategy summary>",
+    "assets": {
+      "SYMBOL1": "Action: BUY/HOLD/REDUCE/SELL. <2-3 sentences with current price, trend, rationale tied to macro regime>",
+      "SYMBOL2": "..."
+    }
+  }'
+```
+
+**Professional standard**: Write recommendations at the level of a portfolio manager who has read the full macro report. Reference specific triggered alerts when relevant (e.g. "Given the UMCSENT danger signal and elevated VIX, this consumer-facing stock warrants a REDUCE"). Be direct — give a clear action, not hedged non-answers.

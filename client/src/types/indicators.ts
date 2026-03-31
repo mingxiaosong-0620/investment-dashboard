@@ -54,3 +54,38 @@ export interface InsightsResponse {
   overall: { content: string; generated_at: string } | null;
   indicators: Record<string, IndicatorInsight>;
 }
+
+// ─── Portfolio types ──────────────────────────────────────────────────────────
+
+export type AssetType = 'stock' | 'etf' | 'bond' | 'crypto' | 'commodity' | 'reit' | 'cash' | 'other';
+
+export interface PortfolioHolding {
+  symbol: string;
+  name: string;
+  assetType: AssetType;
+  allocation: number; // percentage 0–100
+}
+
+export interface AssetPrice {
+  symbol: string;
+  latestClose: number | null;
+  latestDate: string | null;
+  change1d: number | null; // percent
+  change1m: number | null; // percent
+  history: { date: string; close: number }[];
+}
+
+export interface PricesResponse {
+  prices: AssetPrice[];
+  errors?: string[];
+}
+
+export interface PortfolioAssetInsight {
+  content: string;
+  generatedAt: string;
+}
+
+export interface PortfolioInsightsResponse {
+  overall: { content: string; generatedAt: string } | null;
+  assets: Record<string, PortfolioAssetInsight>;
+}

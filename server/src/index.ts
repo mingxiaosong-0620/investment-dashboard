@@ -7,6 +7,7 @@ import { backfillMissing, fetchAllIndicators, startDailyFetchJob } from './jobs/
 import { computeRegime } from './services/regimeAnalysis.js';
 import indicatorRoutes from './routes/indicators.js';
 import insightRoutes from './routes/insights.js';
+import portfolioRoutes from './routes/portfolio.js';
 import pool from './db/client.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,6 +18,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/insights', insightRoutes);
+app.use('/api/portfolio', portfolioRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
